@@ -1,0 +1,152 @@
+---
+title: "mclr"
+output: html_document
+date: "2022-11-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r}
+install.packages("remotes")
+remotes::install_github("drjingma/metaMINT")
+```
+```{r}
+install.packages("latentcor")
+```
+
+```{r}
+install.packages("magrittr") # package installations are only needed the first time you use it
+install.packages("dplyr")    # alternative installation of the %>%
+library(magrittr) # needs to be run every time you start R and want to use %>%
+library(dplyr)    # alternatively, this also loads %>%
+```
+
+```{r}
+install.packages("tidyr")
+library(tidyr) 
+```
+
+
+```{r}
+library(metaMint)
+library(latentcor)
+
+counts <- read.csv(file = 'count_table.csv')
+```
+
+```{r}
+z_mclr <- mclr(t(counts[, 2:length(colnames(counts))]))
+```
+
+```{r}
+z_mclr
+```
+
+
+```{r}
+vis_df <- read.csv(file = 'atacama_cooked.csv')
+
+vis_df <- data.frame(vis_df[,-1], row.names = vis_df[,1])
+
+vis_df
+```
+The result of mclr-transformation by q2-gglasso and metaMint is the same.
+
+### Latent correlation
+```{r}
+clean_types = get_types(vis_df)
+```
+
+
+```{r}
+org_lat_cor = latentcor(vis_df, types = clean_types, method = "original", use.nearPD = FALSE)
+
+approx_pdTRUE = latentcor(vis_df, types = clean_types, method = "approx", use.nearPD = TRUE, nu=0.001, tol=1e-4)
+
+approx_pdFALSE = latentcor(vis_df, types = clean_types, method = "approx", use.nearPD = FALSE, nu=0.001, tol=1e-4)
+```
+
+Kendall correlation
+```{r}
+kendall <- cor(as.matrix(vis_df), method ="kendall")
+
+dim(kendall)
+```
+
+
+### Hetmaps
+```{r}
+library(ggplot2)
+library(reshape2)
+```
+
+
+```{r}
+melted_ken <- melt(kendall)
+melted_org <- melt(org_lat_cor$R)
+melted_apx_PD <- melt(approx_pdTRUE$R)
+melted_apx_noPD <- melt(approx_pdFALSE$R)
+```
+
+
+```{r}
+ggplot(data = melted_ken, aes(x=Var1, y=Var2, fill=value), show.legend = FALSE) + geom_tile() + scale_color_gradient(low="blue", high="red")
+
+ggsave("kendal_heatmap.png", height = 40, width = 40)
+```
+
+
+```{r}
+ggplot(data = melted_org, aes(x=Var1, y=Var2, fill=value), show.legend = FALSE) + geom_tile() + scale_color_gradient(low="blue", high="red")
+
+ggsave("org_heatmap.png", height = 40, width = 40)
+```
+
+```{r}
+ggplot(data = melted_apx_PD, aes(x=Var1, y=Var2, fill=value), show.legend = FALSE) + geom_tile() + scale_color_gradient(low="blue", high="red")
+
+ggsave("apx_PD_heatmap.png", height = 40, width = 40)
+```
+```
+
+```{r}
+ggplot(data = melted_apx_noPD, aes(x=Var1, y=Var2, fill=value), show.legend = FALSE) + geom_tile() + scale_color_gradient(low="blue", high="red")
+
+ggsave("apx_noPD_heatmap.png", height = 40, width = 40)
+```
+```
+
+
+
+
+### Comparison of eigenvalue decomposotion
+```{r}
+ev_ken <- eigen(kendall)
+(values_ken<- ev_ken$values)
+
+ev_org <- eigen(org_lat_cor$R)
+(values_org <- ev_org$values)
+
+ev_apx_PD <- eigen(approx_pdTRUE$R)
+(values_apx_PD <- ev_apx_PD$values)
+
+ev_apx_noPD <- eigen(approx_pdFALSE$R)
+(values_apx_noPD <- ev_apx_noPD$values)
+```
+
+
+```{r}
+cat("Kendall eigenvalue range:", min(values_ken), max(values_ken), "\n")
+cat("Original eigenvalue range:", min(values_org), max(values_org), "\n")
+cat("Approximate_PD eigenvalue range:", min(values_apx_PD), max(values_apx_PD), "\n")
+cat("Approximate_noPD eigenvalue range:", min(values_apx_noPD), max(values_apx_noPD))
+
+```
+
+
+
