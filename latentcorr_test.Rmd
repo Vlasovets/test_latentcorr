@@ -36,7 +36,7 @@ library(tidyr)
 library(metaMint)
 library(latentcor)
 
-counts <- read.csv(file = 'count_table.csv')
+counts <- read.csv(file = 'data/count_table.csv')
 ```
 
 ```{r}
@@ -49,7 +49,7 @@ z_mclr
 
 
 ```{r}
-vis_df <- read.csv(file = 'atacama_cooked.csv')
+vis_df <- read.csv(file = 'data/atacama_cooked.csv')
 
 vis_df <- data.frame(vis_df[,-1], row.names = vis_df[,1])
 
